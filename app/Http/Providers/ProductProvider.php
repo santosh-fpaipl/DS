@@ -1,53 +1,60 @@
 <?php
 
 namespace App\Http\Providers;
-use Illuminate\Support\Facades\Cache;
 use App\Http\Providers\Provider;
 use App\Models\Product;
 use App\Models\Option;
 use App\Models\Range;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\ProductAvailableRequest;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\SkuResource;
-use Illuminate\Support\Facades\DB;
 use App\Http\Resources\ProductSkuResource;
-use App\Traits\HasActive;
 use App\Http\Responses\ApiResponse;
+use Illuminate\Support\Facades\Log;
 
 class ProductProvider extends provider
 {
     /**
     * Get All Products
     */
-
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('options')->with('ranges')->get();
+        try{
+            $products = Product::with('options')->with('ranges')->get();
+        } catch(\Exception $e){
+            return ApiResponse::error($e->getMessage(),404);  
+        }
+
+        // viar = validInternalApiRequest
+        $viar = $this->reqHasApiSecret($request);
+        foreach ($products as $product) {
+            if($viar){
+                $product->viar = true;
+            }
+        }
+        
         return ApiResponse::success(ProductResource::collection($products));
     }
 
-    public function show(Request $request, Product $product)
+    public function show(ProductAvailableRequest $request, Product $product)
     {
+        if($request->has('check') && $request->check == 'available'){
+            return ApiResponse::success(['available' => true]);
+        }
         if(!$product->active){
             return ApiResponse::error('Product is inactive.',404);
         }
+        // viar = validInternalApiRequest
+        $viar = $this->reqHasApiSecret($request);
+        if($viar){
+            $product->viar = true;
+        }
         return ApiResponse::success(new ProductResource($product));
     }
-
-    public function showProductBySKU(Request $request){
-        $product_arr = explode("-", $request->sku);
-        if(!Product::where('id', $product_arr[0])->exists() || 
-            !Option::where('product_id', $product_arr[0])->where('id', $product_arr[1])->exists() || 
-            !Range::where('product_id', $product_arr[0])->where('id', $product_arr[2])->exists()
-        )
-        {
-            return ApiResponse::error('SKU does not exist.', 404);
-        }
-        $product = Product::find($product_arr[0]);
-        return ApiResponse::success(new ProductSkuResource($product));
-    }
-
-    public function getCatalogBySKU(){
+   
+    public function allProductSkus(Request $request){
 
         $sku_datas = [];
         $products = Product::with('options')->with('ranges')->get();
@@ -91,7 +98,33 @@ class ProductProvider extends provider
 
         $sku_collections = collect($sku_new_datas);
 
+        // viar = validInternalApiRequest
+        $viar = $this->reqHasApiSecret($request);
+        foreach ($sku_collections as $sku_collection) {
+            if($viar){
+                $sku_collection['viar'] = true;
+            }
+        }
+
         return ApiResponse::success(SkuResource::collection($sku_collections));
     }
-    
+
+    public function showProductSku(Request $request){
+        $product_arr = explode("-", $request->sku);
+        if(!Product::where('id', $product_arr[0])->exists() || 
+            !Option::where('product_id', $product_arr[0])->where('id', $product_arr[1])->exists() || 
+            !Range::where('product_id', $product_arr[0])->where('id', $product_arr[2])->exists()
+        )
+        {
+            return ApiResponse::error('SKU does not exist.', 404);
+        }
+        $product = Product::find($product_arr[0]);
+
+        // viar = validInternalApiRequest
+        $viar = $this->reqHasApiSecret($request);
+        if($viar){
+            $product->viar = true;
+        }
+        return ApiResponse::success(new ProductSkuResource($product));
+    }
 }

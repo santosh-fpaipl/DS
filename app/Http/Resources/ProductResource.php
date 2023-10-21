@@ -19,7 +19,7 @@ class ProductResource extends JsonResource
         //return parent::toArray($request);
         
         return [
-            'id' =>$this->id,
+            'id' =>$this->viar ? $this->id : '',
             'sid' =>$this->sid,
             'name' => $this->name,
             'sid' => $this->sid,

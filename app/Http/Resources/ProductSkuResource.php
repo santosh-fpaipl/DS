@@ -29,8 +29,8 @@ class ProductSkuResource extends JsonResource
             'moq' => $this->moq,
             'hsncode' => $this->hsncode,
             'gstrate' => $this->gstrate,
-            'option'=> new OptionSkuResource($this->options->find($product_arr[1])),
-            "range" => new RangeSkuResource($this->ranges->find($product_arr[2])),
+            'options'=> new OptionSkuResource($this->options->find($product_arr[1])),
+            "ranges" => new RangeSkuResource($this->ranges->find($product_arr[2])),
         ];
     }
 }
