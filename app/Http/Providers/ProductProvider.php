@@ -43,9 +43,9 @@ class ProductProvider extends provider
         if($request->has('check') && $request->check == 'available'){
             return ApiResponse::success(['available' => true]);
         }
-        if(!$product->active){
-            return ApiResponse::error('Product is inactive.',404);
-        }
+        // if(!$product->active){
+        //     return ApiResponse::error('Product is inactive.',404);
+        // }
         // viar = validInternalApiRequest
         $viar = $this->reqHasApiSecret($request);
         if($viar){
